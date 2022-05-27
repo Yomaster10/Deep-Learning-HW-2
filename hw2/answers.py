@@ -9,7 +9,8 @@ math (delimited with $$).
 # Part 1 (Backprop) answers
 
 part1_q1 = r"""
-**Your answer:**
+**A. The shape of this tensor is (64, 512, 64, 1024)
+B. **
 
 
 Write your answer using **markdown** and $\LaTeX$:
@@ -43,7 +44,9 @@ def part2_overfit_hp():
     wstd, lr, reg = 0, 0, 0
     # TODO: Tweak the hyperparameters until you overfit the small dataset.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    wstd = 0.048
+    lr = 0.019
+    reg = 0
     # ========================
     return dict(wstd=wstd, lr=lr, reg=reg)
 
@@ -60,7 +63,11 @@ def part2_optim_hp():
     # TODO: Tweak the hyperparameters to get the best results you can.
     # You may want to use different learning rates for each optimizer.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    wstd = 0.1
+    lr_vanilla = 0.085
+    lr_momentum = 0.01
+    lr_rmsprop = 0.0005
+    reg = 0
     # ========================
     return dict(
         wstd=wstd,
@@ -79,7 +86,8 @@ def part2_dropout_hp():
     # TODO: Tweak the hyperparameters to get the model to overfit without
     # dropout.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    wstd = 0.1
+    lr = 0.005
     # ========================
     return dict(wstd=wstd, lr=lr)
 
@@ -138,7 +146,10 @@ def part3_arch_hp():
     out_activation = "none"  # activation function to apply at the output layer
     # TODO: Tweak the MLP architecture hyperparameters.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    n_layers = 4
+    hidden_dims = 100
+    activation = "relu"
+    out_activation = "softmax"
     # ========================
     return dict(
         n_layers=n_layers,
@@ -160,7 +171,10 @@ def part3_optim_hp():
     #    What you returns needs to be a callable, so either an instance of one of the
     #    Loss classes in torch.nn or one of the loss functions from torch.nn.functional.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    loss_fn = torch.nn.CrossEntropyLoss()
+    lr = 0.085
+    weight_decay = 1e-4
+    momentum = 0.28
     # ========================
     return dict(lr=lr, weight_decay=weight_decay, momentum=momentum, loss_fn=loss_fn)
 

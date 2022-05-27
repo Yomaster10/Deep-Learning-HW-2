@@ -72,7 +72,8 @@ class VanillaSGD(Optimizer):
             #  Update the gradient according to regularization and then
             #  update the parameters tensor.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            dp += self.reg*p
+            p -= self.learn_rate*dp
             # ========================
 
 
@@ -91,7 +92,8 @@ class MomentumSGD(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.v = [0 for p, dp in self.params if dp != None]
+        self.index = 0 
         # ========================
 
     def step(self):
@@ -103,7 +105,14 @@ class MomentumSGD(Optimizer):
             # update the parameters tensor based on the velocity. Don't forget
             # to include the regularization term.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            v = self.v[self.index]
+            v = (v*self.momentum)-(dp*self.learn_rate)
+            self.v[self.index] = v
+            self.index += 1
+            with torch.no_grad():
+                p += v
+            if self.index==len(self.v):
+                self.index = 0
             # ========================
 
 
@@ -124,7 +133,8 @@ class RMSProp(Optimizer):
 
         # TODO: Add your own initializations as needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.r = [0 for p, dp in self.params if dp != None]
+        self.index = 0
         # ========================
 
     def step(self):
@@ -137,5 +147,13 @@ class RMSProp(Optimizer):
             # average of it's previous gradients. Use it to update the
             # parameters tensor.
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            r = self.r[self.index]
+            dp += p*self.reg
+            r = self.decay*r +(1-self.decay)*(dp**2)
+            with torch.no_grad():
+                p -= ((self.learn_rate*dp)/((r+self.eps).sqrt()))
+            self.r[self.index] = r
+            self.index += 1
+            if self.index==len(self.r):
+                self.index = 0
             # ========================

@@ -22,7 +22,7 @@ class Classifier(nn.Module, ABC):
 
         # TODO: Add any additional initializations here, if you need them.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        self.normalize = nn.Softmax(dim=1)
         # ========================
 
     def forward(self, x: Tensor) -> Tensor:
@@ -34,7 +34,7 @@ class Classifier(nn.Module, ABC):
 
         # TODO: Implement the forward pass, returning raw scores from the wrapped model.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        z = self.model.forward(x)
         # ========================
         assert z.shape[0] == x.shape[0] and z.ndim == 2, "raw scores should be (N, C)"
         return z
@@ -47,7 +47,7 @@ class Classifier(nn.Module, ABC):
         """
         # TODO: Calcualtes class scores for each sample.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        z = self.forward(x)
         # ========================
         return self.predict_proba_scores(z)
 
@@ -59,7 +59,7 @@ class Classifier(nn.Module, ABC):
         """
         # TODO: Calculate class probabilities for the input.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        return self.normalize(z)
         # ========================
 
     def classify(self, x: Tensor) -> Tensor:
@@ -128,7 +128,9 @@ class BinaryClassifier(Classifier):
         #  greater or equal to the threshold.
         #  Output should be a (N,) integer tensor.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        r = torch.zeros(y_proba.shape[0], dtype=torch.int)
+        r[y_proba[:, self.positive_class] >= self.threshold] = 1
+        return r
         # ========================
 
 
@@ -177,7 +179,22 @@ def plot_decision_boundary_2d(
     #  plot a contour map.
     x1_grid, x2_grid, y_hat = None, None, None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+
+    min_x = min(min(x[:, 0]), min(x[:, 1]))
+    max_x = max(max(x[:, 0]), max(x[:, 1]))
+
+    x1_grid = torch.linspace(min_x, max_x, steps=int((max_x - min_x) / dx))
+    x2_grid = torch.linspace(min_x, max_x, steps=int((max_x - min_x) / dx))
+
+    xs = torch.cartesian_prod(x1_grid, x2_grid)
+
+    y_hat = classifier.classify(xs)
+
+    y_hat = torch.split(y_hat, x2_grid.shape[0])
+    y_hat = list(y_hat)
+    y_hat = torch.nn.utils.rnn.pad_sequence(y_hat)
+
+    x1_grid, x2_grid = torch.meshgrid(x1_grid, x2_grid, indexing='xy')
     # ========================
 
     # Plot the decision boundary as a filled contour
@@ -211,7 +228,14 @@ def select_roc_thresh(
     fpr, tpr, thresh = None, None, None
     optimal_theresh_idx, optimal_thresh = None, None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    import numpy as np
+    y_scores = classifier.predict_proba(x)[:, 1].detach()
+    fpr, tpr, thresh = roc_curve(y, y_scores)
+    points = np.stack((fpr, tpr), axis=1)
+    ideal_point = np.array([0, 1])
+    results = np.apply_along_axis(lambda x: np.linalg.norm(x - ideal_point), 1, points)
+    optimal_thresh_idx = np.argmin(results)
+    optimal_thresh = thresh[optimal_thresh_idx]
     # ========================
 
     if plot:
