@@ -270,7 +270,6 @@ class ClassifierTrainer(Trainer):
         #  - Update parameters
         #  - Classify and calculate number of correct predictions
         # ====== YOUR CODE: ======
-
         y_pred = self.model(X)
 
         loss = self.loss_fn(y_pred, y)
@@ -282,7 +281,6 @@ class ClassifierTrainer(Trainer):
         self.optimizer.step()
         y_class = self.model.classify_scores(y_pred)
         num_correct = X.shape[0] - torch.count_nonzero(y_class-y)
-
         # ========================
 
         return BatchResult(batch_loss, num_correct)
@@ -332,8 +330,10 @@ class LayerTrainer(Trainer):
         # ====== YOUR CODE: ======
         out = self.model(X.reshape(X.size()[0],-1))
         num_correct = (torch.argmax(out,dim=-1)==y).sum().detach().item()
+        
         loss = self.loss(out,y)
         self.optim.zero_grad()
+        
         gradl = self.loss.backward(torch.ones(loss.size()))
         gradm = self.model.backward(gradl)
         self.optim.step()

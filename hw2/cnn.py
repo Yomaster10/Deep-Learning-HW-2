@@ -80,8 +80,49 @@ class CNN(nn.Module):
         #  Note: If N is not divisible by P, then N mod P additional
         #  CONV->ACTs should exist at the end, without a POOL after them.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        params = ['kernel_size', 'stride', 'padding', 'dilation']
 
+        for i in params:
+            if i not in self.pooling_params:
+                if i == 'kernel_size':
+                     self.pooling_params[i] = 2
+                if i == 'padding':
+                    self.pooling_params[i] = 0
+                if i == 'stride':
+                    self.pooling_params[i] = self.pooling_params['kernel_size']
+            if i not in self.conv_params:
+                if i == 'kernel_size':
+                    self.conv_params[i] = 2
+                if i == 'padding':
+                    self.conv_params[i] = 0
+                if i == 'dilation':
+                    self.conv_params[i] = 1
+                if i == 'stride':
+                    self.conv_params[i] = 1
+
+        ch = self.channels.copy()
+        ch.insert(0, in_channels)
+
+        nonlin = ACTIVATIONS[self.activation_type]
+        out_h = in_h
+        out_w = in_w
+
+        for j, (in_channel, out_channel) in enumerate(zip(ch, self.channels)):
+            layers += [nn.Conv2d(in_channels=in_channel, out_channels=out_channel, kernel_size=self.conv_params['kernel_size'],
+                      stride=self.conv_params['stride'], padding=self.conv_params['padding'], dilation=self.conv_params['dilation']), nonlin(**self.activation_params)]
+            
+            out_h = int(torch.floor(torch.tensor(((out_h + 2*self.conv_params['padding'] - self.conv_params['dilation']*(self.conv_params['kernel_size'] - 1) - 1) / self.conv_params['stride'])+ 1)))
+            out_w = int(torch.floor(torch.tensor(((out_w + 2*self.conv_params['padding'] - self.conv_params['dilation']*(self.conv_params['kernel_size'] - 1) - 1) / self.conv_params['stride'])+ 1)))
+
+            if (j + 1) % self.pool_every == 0:
+                if out_w >= 1 or out_h >= 1:
+                    pool = POOLINGS[self.pooling_type](kernel_size=self.pooling_params['kernel_size'])
+                    layers.append(pool)
+                    out_h = int(torch.floor(torch.tensor(((out_h + 2*self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
+                    out_w = int(torch.floor(torch.tensor(((out_w + 2*self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
+
+        self.out_h = out_h
+        self.out_w = out_w
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -95,7 +136,8 @@ class CNN(nn.Module):
         rng_state = torch.get_rng_state()
         try:
             # ====== YOUR CODE: ======
-            raise NotImplementedError()
+            num_features = int(self.channels[-1] * self.out_w * self.out_h)
+            return num_features
             # ========================
         finally:
             torch.set_rng_state(rng_state)
@@ -109,7 +151,13 @@ class CNN(nn.Module):
         #  - The last Linear layer should have an output dim of out_classes.
         mlp: MLP = None
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        D = self.hidden_dims.copy()
+        D.append(self.out_classes)
+        
+        non = [ACTIVATIONS[self.activation_type](**self.activation_params)] * (len(self.hidden_dims))
+        non.append(nn.Identity())
+        
+        mlp = MLP(in_dim=self._n_features(), dims=D, nonlins=non)
         # ========================
         return mlp
 
@@ -119,7 +167,12 @@ class CNN(nn.Module):
         #  return class scores.
         out: Tensor = None
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = self.feature_extractor.forward(x)
+        
+        N = out.size(0)
+        out = out.view(N, -1)
+        
+        out = self.mlp.forward(out)
         # ========================
         return out
 
@@ -179,14 +232,38 @@ class ResidualBlock(nn.Module):
         #  - Don't create layers which you don't use! This will prevent
         #    correct comparison in the test.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        ch = channels.copy()
+        ch.insert(0, in_channels)
+        nonlin = ACTIVATIONS[activation_type]
+
+        # Main Path
+        main_path = []
+        for i,(in_ch,out_ch) in enumerate(zip(ch,channels)):
+            main_path += [nn.Conv2d(in_channels=in_ch,out_channels=out_ch,
+                kernel_size=(kernel_sizes[i], kernel_sizes[i]),bias=True,
+                padding=kernel_sizes[i]//2)]
+            
+            if i != (len(ch)-2):
+                if dropout > 0:
+                    main_path.append(nn.Dropout2d(p=dropout))
+                if batchnorm:
+                    main_path.append(nn.BatchNorm2d(num_features=out_ch))
+                    
+                main_path.append(nonlin(**activation_params))
+        self.main_path = nn.Sequential(*main_path)
+        
+        # Shortcut Path
+        if in_channels != channels[-1]:
+            self.shortcut_path = nn.Sequential(nn.Conv2d(in_channels, channels[-1], kernel_size=(1,1), bias=False, padding=0))
+        else:
+            self.shortcut_path = nn.Sequential(nn.Identity())
         # ========================
 
     def forward(self, x: Tensor):
         # TODO: Implement the forward pass. Save the main and residual path to `out`.
         out: Tensor = None
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        out = self.main_path(x) + self.shortcut_path(x)
         # ========================
         out = torch.relu(out)
         return out
@@ -226,7 +303,10 @@ class ResidualBottleneckBlock(ResidualBlock):
         #  Initialize the base class in the right way to produce the bottleneck block
         #  architecture.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        ch = [inner_channels[0]] + list(inner_channels) + [in_out_channels]
+        ker = [1] + list(inner_kernel_sizes) + [1]
+        
+        super(ResidualBottleneckBlock, self).__init__(in_out_channels, ch, kernel_sizes=ker, **kwargs)
         # ========================
 
 
@@ -272,7 +352,51 @@ class ResNet(CNN):
         #  - Use bottleneck blocks if requested and if the number of input and output
         #    channels match for each group of P convolutions.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        params = ['kernel_size', 'stride', 'padding', 'dilation']
+
+        for i in params:
+            if i not in self.pooling_params:
+                if i == 'kernel_size':
+                     self.pooling_params[i] = 3
+                if i == 'padding':
+                    self.pooling_params[i] = 0
+                if i == 'stride':
+                    self.pooling_params[i] = self.pooling_params['kernel_size']
+            if i not in self.conv_params:
+                if i == 'kernel_size':
+                    self.conv_params[i] = 3
+                if i == 'padding':
+                    self.conv_params[i] = 0
+                if i == 'dilation':
+                    self.conv_params[i] = 1
+                if i == 'stride':
+                    self.conv_params[i] = 1
+
+        ch = self.channels.copy()
+        ch.insert(0, in_channels)
+
+        nonlin = ACTIVATIONS[self.activation_type]
+        out_h = in_h
+        out_w = in_w
+
+        for j in range(0, len(self.channels), self.pool_every):
+            if(self.bottleneck and ch[j] == ch[min(j + self.pool_every, len(ch) - 1)]):
+                layers += [ResidualBottleneckBlock(in_out_channels=ch[j], inner_channels=self.channels[j+1:min(j + self.pool_every - 1, len(self.channels))],
+                            inner_kernel_sizes=[self.conv_params['kernel_size']]*(min(j + self.pool_every - 2, len(self.channels)) - j), batchnorm=self.batchnorm,
+                            dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params)]
+            else:
+                layers += [ResidualBlock(in_channels=ch[j], channels=self.channels[j:min(j + self.pool_every, len(self.channels))],
+                            kernel_sizes=[self.conv_params['kernel_size']]*(min(j + self.pool_every, len(self.channels)) - j), batchnorm=self.batchnorm,
+                            dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params)]    
+            if (j + self.pool_every <= len(self.channels)):
+                if out_w >= 1 or out_h >= 1:
+                    pool = POOLINGS[self.pooling_type](kernel_size=self.pooling_params['kernel_size'])
+                    layers.append(pool)
+                    out_h = int(torch.floor(torch.tensor(((in_h + 2 * self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
+                    out_w = int(torch.floor(torch.tensor(((in_w + 2 * self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
+
+        self.out_h = out_h
+        self.out_w = out_w
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -287,7 +411,7 @@ class YourCNN(CNN):
 
         # TODO: Add any additional initialization as needed.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        #raise NotImplementedError()
         # ========================
 
     # TODO: Change whatever you want about the CNN to try to
@@ -295,6 +419,6 @@ class YourCNN(CNN):
     #  For example, add batchnorm, dropout, skip connections, change conv
     #  filter sizes etc.
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    #raise NotImplementedError()
 
     # ========================

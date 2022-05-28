@@ -96,7 +96,8 @@ class ArgMaxClassifier(Classifier):
         #  Classify each sample to one of C classes based on the highest score.
         #  Output should be a (N,) integer tensor.
         # ====== YOUR CODE: ======
-        raise NotImplementedError()
+        res = torch.argmax(y_proba, dim=1)
+        return res
         # ========================
 
 
