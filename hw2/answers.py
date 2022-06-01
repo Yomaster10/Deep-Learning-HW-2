@@ -187,29 +187,18 @@ def part3_optim_hp():
 
 
 part3_q1 = r"""
-1. The model has a high Optimization error. This is evident by the increase in the loss function 
-towards the end of the testing process.A plausible reason could be that the learning rate is too large
+1. It seems that the results a pretty good in terms of accuracy and loss, it might be the case that we haven't find the optimal minimizer,
+and that the solution is sub-optimal, but the error is not large.
 
-Furthermore, The Training set's loss function seems to have plateaued, this could also indicate that there
-is a need for a smaller learning rate or perhaps a different loss function.
+2. It seems that the generalization error of our model is not so high either since the results on the
+test set are about the same for all epochs (with some ups and downs) so it doesn't seem that we over-fitted
+the training data.
 
+3. From looking at the boundry plot, it seems that there are areas that our model missed, large area of examples
+that were labeld in correctly. that could indicate that the approximation error is large and we should consider
+changing our model to better approximate the tru function.
 
-The last possible culprit responsible for the optimization error could be the depth of the network, 
-as it introduces more parameters which complicates the optimization problem, which could possibly result 
-a subpar optimization of the model.
-
-2. The model has a high generalization error, the potential cause for this could be that the weight decay 
-parameter is too small.
-
-Additionally, we can see that the epoch in which the model scored the best on test set is not the 
-last one but the 11th instead (88.5 vs 90.8) this could be the result of high learning rate and momentum
-
-
-3. The model does not have a high approximation error. The model scored 95% on the training set and seemed
-to have converged. If the 5% error rate is still unacceptable, a possible remedy could, a smaller learning 
-rate, a different loss function which could have landscape features that are easier to optimize on. The 
-activation functions and the final activation function could also be tuned to further reduce the error.
-
+ 
 
 
 """
@@ -239,7 +228,7 @@ lower than  the cost of a false negative in this scenario. thus, we would want t
 
 
 part3_q4 = r"""
-**1. It seems that when the depth is fixed and the width varies, the wider the model, the closer the decision boundary is to the true boundary between the two sets.
+1. It seems that when the depth is fixed and the width varies, the wider the model, the closer the decision boundary is to the true boundary between the two sets.
 By increasing the width we add more features to the model,
 and allow it to approximate more complex functions from a richer hypothesis class that results
 in a more complex decision boundary.
@@ -249,22 +238,20 @@ Each layer provides additional linear classifier and a non-linear activation, th
 allowing the model to emulate more complex functions, resulting in a decision boundary which provides
 better accuracy on the test set.
 
-3.1  The results of the deeper network are better than those of the wider network.
+3.1  The results of the deeper network (4,8) are better than those of the wider network.
 
  
-3.2 The results of the deeper network are better than those of the wider network.
+3.2 The results of the deeper network (4,32) are better than those of the wider network.
 
-It is possible that the deeper models are able to create a good decision boundary by creating 
-"linear segments" that are each able to separate a part of plane and ultimately combining them all with
-non-linear functions as the "segment delimiters" is what gives this network configuration a better accuracy.
+It seems that the complexity of the boundry that is achieved by adding depth to the model, had more effect on
+the results than having a very wide but shallow model, even though the number of parameters was the same.
+This fact shows that you can achieve better results with a smaller model if you add comlexity with additional layers.
 
 
-4. Yes, The threshold selection improved the final result. in all network configurations the model performed 
-better on the test set compared to the validation set
-or slightly better on the validation set with no significant drop-off in the test set accuracy.
-This performance indicates that by tuning the threshold with threshold selection,
-the model finds a threshold the more accurately reflects the data,
-thus allowing it to perform well on the test set.**
+4. ** Yes** , The threshold selection improved the final result. in all network configurations the model performed 
+better or at least not much worse on the test set compared to the validation set
+This fact indicates that by tuning the threshold on a randomly selected validation set,
+allows the model predict in a way that attempts to minimize FNR and FPR.
 
 
 """
