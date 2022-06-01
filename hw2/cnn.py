@@ -120,9 +120,6 @@ class CNN(nn.Module):
                     layers.append(pool)
                     out_h = int(torch.floor(torch.tensor(((out_h + 2*self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
                     out_w = int(torch.floor(torch.tensor(((out_w + 2*self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
-
-        self.out_h = out_h
-        self.out_w = out_w
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -136,7 +133,11 @@ class CNN(nn.Module):
         rng_state = torch.get_rng_state()
         try:
             # ====== YOUR CODE: ======
-            num_features = int(self.channels[-1] * self.out_w * self.out_h)
+            tens = torch.ones(1, *self.in_size)
+
+            seq = self.feature_extractor(tens)
+            num_features = seq.size(0) * seq.size(1) * seq.size(2) * seq.size(3)
+
             return num_features
             # ========================
         finally:
@@ -352,51 +353,35 @@ class ResNet(CNN):
         #  - Use bottleneck blocks if requested and if the number of input and output
         #    channels match for each group of P convolutions.
         # ====== YOUR CODE: ======
-        params = ['kernel_size', 'stride', 'padding', 'dilation']
+        ch = self.channels
+        pool = self.pool_every
+        bot = self.bottleneck
 
-        for i in params:
-            if i not in self.pooling_params:
-                if i == 'kernel_size':
-                     self.pooling_params[i] = 3
-                if i == 'padding':
-                    self.pooling_params[i] = 0
-                if i == 'stride':
-                    self.pooling_params[i] = self.pooling_params['kernel_size']
-            if i not in self.conv_params:
-                if i == 'kernel_size':
-                    self.conv_params[i] = 3
-                if i == 'padding':
-                    self.conv_params[i] = 0
-                if i == 'dilation':
-                    self.conv_params[i] = 1
-                if i == 'stride':
-                    self.conv_params[i] = 1
+        N = len(ch)
+        num_pools = N // pool
 
-        ch = self.channels.copy()
-        ch.insert(0, in_channels)
-
-        nonlin = ACTIVATIONS[self.activation_type]
-        out_h = in_h
-        out_w = in_w
-
-        for j in range(0, len(self.channels), self.pool_every):
-            if(self.bottleneck and ch[j] == ch[min(j + self.pool_every, len(ch) - 1)]):
-                layers += [ResidualBottleneckBlock(in_out_channels=ch[j], inner_channels=self.channels[j+1:min(j + self.pool_every - 1, len(self.channels))],
-                            inner_kernel_sizes=[self.conv_params['kernel_size']]*(min(j + self.pool_every - 2, len(self.channels)) - j), batchnorm=self.batchnorm,
-                            dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params)]
+        # Building the network architecture
+        for i in range(num_pools):
+            if (pool > 2) and bot and (in_channels == ch[(i + 1) * pool - 1]):
+                res_block = ResidualBottleneckBlock
+                layers.append(res_block(in_channels, ch[i * pool + 1: (i + 1) * pool - 1], inner_kernel_sizes=[3] * (pool - 2),
+                                    batchnorm=self.batchnorm, dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params))
+                layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
+                in_channels = ch[(i + 1) * pool - 1]
             else:
-                layers += [ResidualBlock(in_channels=ch[j], channels=self.channels[j:min(j + self.pool_every, len(self.channels))],
-                            kernel_sizes=[self.conv_params['kernel_size']]*(min(j + self.pool_every, len(self.channels)) - j), batchnorm=self.batchnorm,
-                            dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params)]    
-            if (j + self.pool_every <= len(self.channels)):
-                if out_w >= 1 or out_h >= 1:
-                    pool = POOLINGS[self.pooling_type](kernel_size=self.pooling_params['kernel_size'])
-                    layers.append(pool)
-                    out_h = int(torch.floor(torch.tensor(((in_h + 2 * self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
-                    out_w = int(torch.floor(torch.tensor(((in_w + 2 * self.pooling_params['padding'] - self.pooling_params['kernel_size']) / self.pooling_params['stride']) + 1)))
+                res_block = ResidualBlock
+                layers.append(res_block(in_channels, ch[i * pool: (i + 1) * pool], kernel_sizes=[3] * pool,
+                                    batchnorm=self.batchnorm, dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params))
+                layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
+                in_channels = ch[(i + 1) * pool - 1]
 
-        self.out_h = out_h
-        self.out_w = out_w
+        if N % pool > 1:
+            if (in_channels == ch[-1]) and bot:
+                layers.append(res_block(in_channels, ch[num_pools * pool + 1:-1], inner_kernel_sizes=[3] * (N % pool - 2),
+                                    batchnorm=self.batchnorm, dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params))
+            else:
+                layers.append(res_block(in_channels, ch[num_pools * pool:], kernel_sizes=[3] * (N % pool),
+                                    batchnorm=self.batchnorm, dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params))
         # ========================
         seq = nn.Sequential(*layers)
         return seq
