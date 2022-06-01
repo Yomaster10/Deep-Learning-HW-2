@@ -9,29 +9,23 @@ math (delimited with $$).
 # Part 1 (Backprop) answers
 
 part1_q1 = r"""
-**A. The shape of this tensor is (64, 512, 64, 1024)
-B. **
+A. The shape of this tensor is **(64, 512, 64, 1024)**
+B. **The Jacobian is sparse**. Every cell i,j in Y is affected only by the i row in X.
+Thus, only cells who's first and third entries are the same (Their index has the form of (i,j,i,k)) could be non-zero.
+C. **No.** we can calculate the vector-jacobian product directly:
+$\delta\mat{X} = \delta\mat{Y} * ~\mat{W}$.
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+A2. **$N\times D_{\mathrm{out}}\times D_{\mathrm{out}}\times D_{\mathrm{in}}$.**
+B2. **The Jacobian is sparse.** Every cell i,j in Y is affected only by the the j-th row in W.
+Thus, only cells who's second and third entries are the same (Their index has the form of (i,j,j,k)) could be non-zero.
+C2. **No.** we can calculate the vector-jacobian product directly:
+$\delta\mat{W} = \delta\mattr{Y} * ~\mat{X}$.
 """
 
 part1_q2 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+**NO.**
+It is possible to calculate the gradient of the loss w.t.r each of the parameters directly, but the use
+of B.P makes it feasible to use gradient methods for training large multilayer networks.
 
 """
 
@@ -93,44 +87,57 @@ def part2_dropout_hp():
 
 
 part2_q1 = r"""
-**Your answer:**
+**The graphs match what we expected.** Dropout is a regularization method used 
+to reduce overfitting and improve generalization. 
 
+We can see that for the cases where dropout=0 and dropout=0.4, there seems to be over-fitting to the training data since the training accuracy is
+significantly higher than the test accuracy.
+By looking at the case where dropout=0.8, we can also see, that the training accuracy and the test accuracy are close, which could indicate low over-fitting
+to the training data.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+It is also evident that in the case of no dropout, the difference between training and test, both in loss and accuracy is extreme.
 
 """
 
 part2_q2 = r"""
-**Your answer:**
+**It is possible**
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+the cross-entropy loss is influenced by the resulting ditribution over the class scores,
+while the accuracy depends only on the ratio of correct predictions to all predictions.
+that is why, for a few epochs, if the prediction is correct while the distribution is pretty
+close to uniform for example, it is possible for the loss and accuracy to increase simultaneously.
 
 """
 
 part2_q3 = r"""
-**Your answer:**
+1. Backpropogation is an algorithm for efficiently calculating the gradient
+of the loss function w.r.t its parameters. Gradient decent is the algorithm used to find the local
+minimum of the loss function by making small steps in the negative direction of the gradient (that could be claculated
+using B.P).
 
+2. Gradient Descent uses all samples in each iteration of the algorithm to calculate the gradient of
+the loss while stochastic G.D uses a single sample each iteration.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+3. One justification is that it is usually unfeasible to store the entire dataset in memory and save all the gradients.
+Another justification is that in a lot of cases the functions that we are attempting to optimize a non-convex
+so by stochastically selecting samples to train on SGD decreases the likelihood of the optimizer getting 
+stuck in a local minimum.
+
+4. **A. The two approaches are equivalent.** In GD we calculate the loss for the entire dataset and then use B.P
+    to update the weights. If $\mathcal{L}(x)$ is the loss function, regular GD, would sum the loss of all
+    samples ($n$ samples) and get $total\_loss = \mathcal{L}(X)=\sum_{i=1}^{n}\mathcal{L}(x_i)$.
+    With the suggested batches approach, we divide our $n$ samples to $m$ batches, therefore, the size of each batch is
+    $\sim \frac{n}{m}$. Hence, in this approach, the total loss for each batch $i$ is
+    $batch_j\_loss = \mathcal{L}(X_j)=\sum_{i=1}^{\frac{n}{m}}\mathcal{L}(x_i\in X_j)$.
+    Summing the loss from all batches we get $total\_loss = \sum_{j}^{m}\mathcal{L}(X_j)
+    =\sum_{j}^{m}\sum_{i=1}^{\frac{n}{m}}\mathcal{L}(x_i\in X_j)=\sum_{i}^{n}\mathcal{L}(x_i\in X)$.
+    We can see that the loss is equivalent to G.D.
+
+    B. After each step we need to save the results in memory for the backward step, summing the losses. 
+    That is, for each forward step, we need to save the gradient. The result is that after a number of forward steps, we fill up the memory
+    and get an out of memory error.
 
 """
-
 
 # ==============
 
@@ -180,55 +187,85 @@ def part3_optim_hp():
 
 
 part3_q1 = r"""
-**Your answer:**
+1. The model has a high Optimization error. This is evident by the increase in the loss function 
+towards the end of the testing process.A plausible reason could be that the learning rate is too large
+
+Furthermore, The Training set's loss function seems to have plateaued, this could also indicate that there
+is a need for a smaller learning rate or perhaps a different loss function.
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+The last possible culprit responsible for the optimization error could be the depth of the network, 
+as it introduces more parameters which complicates the optimization problem, which could possibly result 
+a subpar optimization of the model.
+
+2. The model has a high generalization error, the potential cause for this could be that the weight decay 
+parameter is too small.
+
+Additionally, we can see that the epoch in which the model scored the best on test set is not the 
+last one but the 11th instead (88.5 vs 90.8) this could be the result of high learning rate and momentum
+
+
+3. The model does not have a high approximation error. The model scored 95% on the training set and seemed
+to have converged. If the 5% error rate is still unacceptable, a possible remedy could, a smaller learning 
+rate, a different loss function which could have landscape features that are easier to optimize on. The 
+activation functions and the final activation function could also be tuned to further reduce the error.
+
+
 
 """
 
 part3_q2 = r"""
-**Your answer:**
-
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+**We would expect the FNR to be higher. From looking at the plot of the decision
+boundry it seems that there are more red outliers in the blue zone
+than blue outliers in the red zone, which would cause the FNR to be higher in the
+training set (obviously we can also see that from the confusion matrix).
+Because the training and validation are not sampled I.I.D, we can excpect the same result
+on the validation set.**
 
 """
 
 part3_q3 = r"""
-**Your answer:**
+**1. In this scenario we would choose a HIGHER threshold than the one calculated by the ROC curve.
+In this scenario, we would like to minimize the number of false positives in order to
+minimize cost and loss of life, because the cost of false negative is much lower in this scenario than
+the cost of false positive both in terms of cost and risk.
 
+2. In this scenario we would like to minimize false negatives because the cost of a false positive is
+lower than  the cost of a false negative in this scenario. thus, we would want to lower the threshold.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+**
 
 """
 
 
 part3_q4 = r"""
-**Your answer:**
+**1. It seems that when the depth is fixed and the width varies, the wider the model, the closer the decision boundary is to the true boundary between the two sets.
+By increasing the width we add more features to the model,
+and allow it to approximate more complex functions from a richer hypothesis class that results
+in a more complex decision boundary.
+
+2. The greater the depth of the model, the closer the decision boundary is to true boundary between the two sets.
+Each layer provides additional linear classifier and a non-linear activation, thus 
+allowing the model to emulate more complex functions, resulting in a decision boundary which provides
+better accuracy on the test set.
+
+3.1  The results of the deeper network are better than those of the wider network.
+
+ 
+3.2 The results of the deeper network are better than those of the wider network.
+
+It is possible that the deeper models are able to create a good decision boundary by creating 
+"linear segments" that are each able to separate a part of plane and ultimately combining them all with
+non-linear functions as the "segment delimiters" is what gives this network configuration a better accuracy.
 
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+4. Yes, The threshold selection improved the final result. in all network configurations the model performed 
+better on the test set compared to the validation set
+or slightly better on the validation set with no significant drop-off in the test set accuracy.
+This performance indicates that by tuning the threshold with threshold selection,
+the model finds a threshold the more accurately reflects the data,
+thus allowing it to perform well on the test set.**
+
 
 """
 # ==============
