@@ -278,26 +278,17 @@ class ClassifierTrainer(Trainer):
         #  - Update parameters
         #  - Classify and calculate number of correct predictions
         # ====== YOUR CODE: ======
-        #y_pred = self.model(X)
+        y_pred = self.model(X)
 
-        #loss = self.loss_fn(y_pred, y)
-        #batch_loss = loss.item()
-
-        #self.optimizer.zero_grad()
-        #loss.backward()
-
-        #self.optimizer.step()
-        #y_class = self.model.classify_scores(y_pred)
-        #num_correct = X.shape[0] - torch.count_nonzero(y_class-y)
+        loss = self.loss_fn(y_pred, y)
+        batch_loss = loss.item()
 
         self.optimizer.zero_grad()
-        pred_scores = self.model(X)
-        loss = self.loss_fn(pred_scores, y)
         loss.backward()
+
         self.optimizer.step()
-        batch_loss = loss.item()
-        pred = torch.argmax(pred_scores, dim=1)
-        num_correct = torch.sum(pred == y).item()
+        y_class = self.model.classify_scores(y_pred)
+        num_correct = torch.sum(y_class == y).item()
         # ========================
 
         return BatchResult(batch_loss, num_correct)
@@ -317,17 +308,11 @@ class ClassifierTrainer(Trainer):
             #  - Forward pass
             #  - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            #y_pred = self.model(X)
-            #loss = self.loss_fn(y_pred, y)
-            #batch_loss = loss.item()
-            #y_class = self.model.classify_scores(y_pred)
-            #num_correct = X.shape[0] - torch.sum(torch.absolute(y_class - y))
-
-            pred_scores = self.model(X)
-            loss = self.loss_fn(pred_scores, y)
+            y_pred = self.model(X)
+            loss = self.loss_fn(y_pred, y)
             batch_loss = loss.item()
-            pred = torch.argmax(pred_scores, dim=1)
-            num_correct = torch.sum(pred == y).item()
+            y_class = self.model.classify_scores(y_pred)
+            num_correct = torch.sum(y_class == y).item()
             # ========================
 
         return BatchResult(batch_loss, num_correct)

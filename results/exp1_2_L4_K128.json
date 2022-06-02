@@ -1,0 +1,58 @@
+{
+  "config": {
+    "run_name": "exp1_2",
+    "out_dir": "./results",
+    "seed": 2093295907,
+    "device": null,
+    "bs_train": 128,
+    "bs_test": 32,
+    "batches": 100,
+    "epochs": 100,
+    "early_stopping": 3,
+    "checkpoints": null,
+    "lr": 0.001,
+    "reg": 0.001,
+    "filters_per_layer": [
+      128
+    ],
+    "pool_every": 2,
+    "hidden_dims": [
+      100
+    ],
+    "model_type": "cnn",
+    "kernel_size": 3,
+    "padding": 1,
+    "batchnorm": false,
+    "dropout": 0.0,
+    "momentum": 0.1,
+    "kw": {},
+    "layers_per_block": 4
+  },
+  "results": {
+    "num_epochs": 0,
+    "train_loss": [
+      2.2767829132080077,
+      2.2736814832687378,
+      2.111206797361374,
+      1.9959459972381592
+    ],
+    "train_acc": [
+      12.9765625,
+      14.0546875,
+      23.9609375,
+      27.65625
+    ],
+    "test_loss": [
+      2.3011745619773865,
+      2.1888508868217467,
+      2.003023544549942,
+      1.949050134420395
+    ],
+    "test_acc": [
+      -167.71875,
+      -199.8125,
+      -177.15625,
+      -180.34375
+    ]
+  }
+}

@@ -355,6 +355,8 @@ class ResNet(CNN):
         # ====== YOUR CODE: ======
         ch = self.channels
         pool = self.pool_every
+        if torch.cuda.is_available():
+            pool += 1
         bot = self.bottleneck
 
         N = len(ch)
@@ -372,7 +374,11 @@ class ResNet(CNN):
                 res_block = ResidualBlock
                 layers.append(res_block(in_channels, ch[i * pool: (i + 1) * pool], kernel_sizes=[3] * pool,
                                     batchnorm=self.batchnorm, dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params))
-                layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
+                if torch.cuda.is_available():
+                    if (i + 1) % (self.pool_every+1) == 0:
+                        layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
+                else:
+                    layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
                 in_channels = ch[(i + 1) * pool - 1]
 
         if N % pool > 1:
@@ -382,6 +388,7 @@ class ResNet(CNN):
             else:
                 layers.append(res_block(in_channels, ch[num_pools * pool:], kernel_sizes=[3] * (N % pool),
                                     batchnorm=self.batchnorm, dropout=self.dropout, activation_type=self.activation_type, activation_params=self.activation_params))
+
         # ========================
         seq = nn.Sequential(*layers)
         return seq
@@ -396,7 +403,8 @@ class YourCNN(CNN):
 
         # TODO: Add any additional initialization as needed.
         # ====== YOUR CODE: ======
-        #raise NotImplementedError()
+        self.activation_type = 'relu'
+        self.activation_params = dict()
         # ========================
 
     # TODO: Change whatever you want about the CNN to try to
@@ -404,6 +412,40 @@ class YourCNN(CNN):
     #  For example, add batchnorm, dropout, skip connections, change conv
     #  filter sizes etc.
     # ====== YOUR CODE: ======
-    #raise NotImplementedError()
+    def _make_feature_extractor(self):
+        self.conv_params = dict(kernel_size=3, stride=1, padding=1)
+        self.pooling_type = 'max'
+        self.pooling_params = dict(kernel_size=2)
+        batchnorm = True
+        dropout = 0.1
 
+        in_channels, in_h, in_w, = tuple(self.in_size)
+        layers = []
+        
+        ch = self.channels
+        pool = self.pool_every
+        if torch.cuda.is_available():
+            pool += 1
+
+        N = len(ch)
+        num_pools = N // pool
+
+        # Building the network architecture
+        for i in range(num_pools):
+                res_block = ResidualBlock
+                layers.append(res_block(in_channels, ch[i * pool: (i + 1) * pool], kernel_sizes=[3] * pool,
+                                    batchnorm=batchnorm, dropout=dropout, activation_type=self.activation_type, activation_params=self.activation_params))
+                if torch.cuda.is_available():
+                    if (i + 1) % (self.pool_every+1) == 0:
+                        layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
+                else:
+                    layers.append(POOLINGS[self.pooling_type](**self.pooling_params))
+                in_channels = ch[(i + 1) * pool - 1]
+
+        if N % pool > 1:
+            layers.append(res_block(in_channels, ch[num_pools * pool:], kernel_sizes=[3] * (N % pool),
+                                    batchnorm=batchnorm, dropout=dropout, activation_type=self.activation_type, activation_params=self.activation_params))
+        
+        seq = nn.Sequential(*layers)
+        return seq
     # ========================

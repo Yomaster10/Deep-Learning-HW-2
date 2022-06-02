@@ -187,18 +187,29 @@ def part3_optim_hp():
 
 
 part3_q1 = r"""
-1. It seems that the results a pretty good in terms of accuracy and loss, it might be the case that we haven't find the optimal minimizer,
-and that the solution is sub-optimal, but the error is not large.
+1. The model has a high Optimization error. This is evident by the increase in the loss function 
+towards the end of the testing process.A plausible reason could be that the learning rate is too large
 
-2. It seems that the generalization error of our model is not so high either since the results on the
-test set are about the same for all epochs (with some ups and downs) so it doesn't seem that we over-fitted
-the training data.
+Furthermore, The Training set's loss function seems to have plateaued, this could also indicate that there
+is a need for a smaller learning rate or perhaps a different loss function.
 
-3. From looking at the boundry plot, it seems that there are areas that our model missed, large area of examples
-that were labeld in correctly. that could indicate that the approximation error is large and we should consider
-changing our model to better approximate the tru function.
 
- 
+The last possible culprit responsible for the optimization error could be the depth of the network, 
+as it introduces more parameters which complicates the optimization problem, which could possibly result 
+a subpar optimization of the model.
+
+2. The model has a high generalization error, the potential cause for this could be that the weight decay 
+parameter is too small.
+
+Additionally, we can see that the epoch in which the model scored the best on test set is not the 
+last one but the 11th instead (88.5 vs 90.8) this could be the result of high learning rate and momentum
+
+
+3. The model does not have a high approximation error. The model scored 95% on the training set and seemed
+to have converged. If the 5% error rate is still unacceptable, a possible remedy could, a smaller learning 
+rate, a different loss function which could have landscape features that are easier to optimize on. The 
+activation functions and the final activation function could also be tuned to further reduce the error.
+
 
 
 """
@@ -228,7 +239,7 @@ lower than  the cost of a false negative in this scenario. thus, we would want t
 
 
 part3_q4 = r"""
-1. It seems that when the depth is fixed and the width varies, the wider the model, the closer the decision boundary is to the true boundary between the two sets.
+**1. It seems that when the depth is fixed and the width varies, the wider the model, the closer the decision boundary is to the true boundary between the two sets.
 By increasing the width we add more features to the model,
 and allow it to approximate more complex functions from a richer hypothesis class that results
 in a more complex decision boundary.
@@ -238,20 +249,22 @@ Each layer provides additional linear classifier and a non-linear activation, th
 allowing the model to emulate more complex functions, resulting in a decision boundary which provides
 better accuracy on the test set.
 
-3.1  The results of the deeper network (4,8) are better than those of the wider network.
+3.1  The results of the deeper network are better than those of the wider network.
 
  
-3.2 The results of the deeper network (4,32) are better than those of the wider network.
+3.2 The results of the deeper network are better than those of the wider network.
 
-It seems that the complexity of the boundry that is achieved by adding depth to the model, had more effect on
-the results than having a very wide but shallow model, even though the number of parameters was the same.
-This fact shows that you can achieve better results with a smaller model if you add comlexity with additional layers.
+It is possible that the deeper models are able to create a good decision boundary by creating 
+"linear segments" that are each able to separate a part of plane and ultimately combining them all with
+non-linear functions as the "segment delimiters" is what gives this network configuration a better accuracy.
 
 
-4. ** Yes** , The threshold selection improved the final result. in all network configurations the model performed 
-better or at least not much worse on the test set compared to the validation set
-This fact indicates that by tuning the threshold on a randomly selected validation set,
-allows the model predict in a way that attempts to minimize FNR and FPR.
+4. Yes, The threshold selection improved the final result. in all network configurations the model performed 
+better on the test set compared to the validation set
+or slightly better on the validation set with no significant drop-off in the test set accuracy.
+This performance indicates that by tuning the threshold with threshold selection,
+the model finds a threshold the more accurately reflects the data,
+thus allowing it to perform well on the test set.**
 
 
 """
@@ -282,14 +295,21 @@ def part4_optim_hp():
 part4_q1 = r"""
 **Your answer:**
 
+(1)  For a convolutional filter consisting of $F\times F$ sized kernels, we'll get $C_{in}\cdot C_{out}\cdot F^{2}$ parameters.
+A layer with $K$ kernels will have $K\cdot(C_{in}\cdot F^{2}+1)$ parameters.
+Thus, the number of parameters in the regular block will be: $256\cdot (64\cdot 3^{2}+1)+64\cdot(256\cdot 3^{2}+1)=295232$.
+The number of parameters in the bottleneck block will be: $64\cdot(256 \cdot 1^{2}+1)+64\cdot(64\cdot 3^{2}+1)+256\cdot(64\cdot 1^{2}+1)=70016$.
+We clearly see that the the bottleneck block has much less parameters than the regular block.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
+(2) The shape of the input should be $(C_{in},H,W)$ and the shape of the kernel should be $F\times F$.
+We have the following formula: $H\cdot W\cdot(C_{in}\cdot F^{2}+(C_{in}\cdot F^{2}-1)+1)=2 C_{in} F^{2}\cdot H W$.
+To calculate the total number of floating point operations, we need to insert the correct shapes and number of kernels, use the layers as described before, set the padding and stride so that they do not affect the shape, and add the number of floating point operations required for the skip-connections.
+Thus we get: \sum_{i}(K\cdot 2 C_{in} F^{2}\cdot H W) + C_{sc}\cdot HW$, for all layers $i$ in the block.
+Finally, the number of floating point operations for the regular block is: $64\cdot2\cdot256\cdot3^{2}\cdot H W+256\cdot2\cdot64\cdot3^{2}\cdot H W +256 H W=590080 H W$, while the number of floating point operations for the bottleneck block is: $64\cdot2\cdot256\cdot1^{2}\cdot H W+64\cdot2\cdot64\cdot3^{2}\cdot H W+256\cdot2\cdot64\cdot1^{2}\cdot H W+256 H W=139520 H W$.
 
+(3) The bottleneck lowers the dimension of the feature space, and we used it here to reduce the dimension from $256d$ to $64d$. Looking in the feature maps, we see that the output of a bottleneck block and a regular block differ by the shape of the subtensor they depend on (which are $256\times3\times3$ and $256\times5\times5$ respectively).
+The bottleneck block thus loses some ability to spatially combine the input. Looking across the feature maps, we see that a bottleneck block with a reduced dimension of $64d$, every feature is a combination of the original 256 features.
+This causes its ability to combine the input across feature maps to diminish, while the regular block still considers all 256 of the original features.
 """
 
 # ==============
@@ -301,65 +321,52 @@ An equation: $e^{i\pi} -1 = 0$
 part5_q1 = r"""
 **Your answer:**
 
+(1) Examining the effect of depth on accuracy, we see that for both $K = 32$ and $K = 64$, depth $L = 4$ yields the best results.
+We see in the graphs that $L = 2$ and $L = 4$ produce decent results, while the accuracy gained by $L = 4$ is slightly higher.
+A possible reason for this is that $L = 4$ produces a deeper network, and thus it can extract better features than $L = 2$.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+(2) We saw that there are indeed values of $L$ for which the network is not trainable.
+They are $L=8$ and $L=16$, for which the training and test accuracies were very low (around $10\%$).
+This is similar to the accuracy that would be achieved by a random classifier, and so we see that the network wasn't really trained well.
+This is probably caused by the fact that the network's depth ($L\geq 8$), which lead to vanishing gradients.
+Two things which we could do to fix that is to use batch normalization (to help make sure that the signal is not diminished by shifting distributions across the network during backpropagation) or to use a residual network (such networks can still learn even if the depth is large, allowing gradient information to pass through the layers).
 """
 
 part5_q2 = r"""
 **Your answer:**
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+From our graphs, we can see that we obtained good results for $L=2$ and $L=4$ across all $K$ values, while the networks with $L=8$ did not fare so well.
+The best network was with $L=4$ (once again!) and $K=256$, for which the test accuracy was the highest (greater than $70\%$).
+In general, the higher $K$ values (128, 256) produced the highest accuracies and lowest losses.
+Comparing between experiments 1.1 and 1.2, we see that our results in both of them line up with each other, thought we still found better results in 1.2 by increasing $K$ further.
 """
 
 part5_q3 = r"""
 **Your answer:**
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+In this part, our results weren't so great. The only depth that seemed to be trainable was $L=1$, which is a bit odd.
+This is possibly due to a poor choice of parameters, rather than actually being a direct result of the depth. 
+Depth can still be a factor though, while greater depths like $L=3$ (which actually leads to the depth being $3L=9$ since $K$ is a list of 3 values) could cause vanishing gradients like we saw before.
+For $L=1$, our results were better than those of the previous experiments, when we consider both the accuracies and the losses.
+This is likely due to the higher values $K$ used here, since the network can use a larger number of features during the learning process.
 """
 
 part5_q4 = r"""
 **Your answer:**
 
-
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+Unlike the previous experiments, here we used a residual network in our architecture.
+The use of skip-connections should grant better performance from the model, and looking at our results that's exactly what we got.
+We got good accuracy values here on the training and test sets, and the network was even able to reach a test accuracy of over $70\%$ for $L=32$!
+We note that this type of network was trainable even for high depth values, which was not so much the case previously.
+This is eaxctly the advantage of using a residual network, which can help us train deep networks while still preventing any vanishing gradients from occurring.
+In this experiment, we see that we've obtained some of our best results so far.
 """
 
 part5_q5 = r"""
 **Your answer:**
 
+(1) We utilized a straightforward ResNet model, but this time with batch normalization, ReLU activation, drouput of 0.1, and max. pooling.
 
-Write your answer using **markdown** and $\LaTeX$:
-```python
-# A code block
-a = 2
-```
-An equation: $e^{i\pi} -1 = 0$
-
+(2) The test loss and accuracy for this model, especially for $L=12$, was fantastic. It outperformed the models from experiment one, with a test accuracy of almost $80\%$!
 """
 # ==============
