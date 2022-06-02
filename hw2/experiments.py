@@ -104,6 +104,11 @@ def cnn_experiment(
     hidden_dims=[1024],
     model_type="cnn",
     # You can add extra configuration for your experiments here
+    kernel_size=3,
+    padding=1,
+    batchnorm=False,
+    dropout=0.0,
+    momentum=0.1,  # Arguments for SGD optimizer
     **kw,
 ):
     """
@@ -140,7 +145,28 @@ def cnn_experiment(
     #   for you automatically.
     fit_res = None
     # ====== YOUR CODE: ======
-    raise NotImplementedError()
+    assert len(ds_test) > 5000 and len(ds_train) > 30000
+    
+    x0, _ = ds_train[0]
+    in_size = x0.shape
+    num_classes = 10
+    
+    channels = [[num_filters] * layers_per_block for num_filters in filters_per_layer]
+    channels = [num_filters for block in channels for num_filters in block]
+
+    classifier = ArgMaxClassifier(
+        model=model_cls(in_size, num_classes, channels=channels, pool_every=pool_every, hidden_dims=hidden_dims,
+            conv_params=dict(kernel_size=kernel_size, stride=1, padding=padding),pooling_params=dict(kernel_size=2),).to(device)
+    )
+    loss_fn = torch.nn.CrossEntropyLoss().to(device)
+    
+    lr, weight_decay, momentum = 0.1, 1e-4, 0.1
+    optimizer = torch.optim.SGD(params=classifier.parameters(), lr=lr, weight_decay=weight_decay, momentum=momentum)
+    trainer = ClassifierTrainer(classifier, loss_fn, optimizer, device=device)
+
+    dl_train = torch.utils.data.DataLoader(ds_train, bs_train, shuffle=True)
+    dl_test = torch.utils.data.DataLoader(ds_test, bs_test)
+    fit_res = trainer.fit(dl_train=dl_train, dl_test=dl_test, num_epochs=epochs, checkpoints=checkpoints, early_stopping=early_stopping, max_batches=batches)
     # ========================
 
     save_experiment(run_name, out_dir, cfg, fit_res)

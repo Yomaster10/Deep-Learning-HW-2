@@ -85,12 +85,19 @@ class Trainer(abc.ABC):
             # ====== YOUR CODE: ======
             r_train = self.train_epoch(dl_train, verbose=verbose, **kw)
             train_loss.append(sum(r_train.losses)/len(r_train.losses))
-            train_acc.append(r_train.accuracy)
+
+            if isinstance(r_train.accuracy, torch.Tensor):
+                train_acc.append(r_train.accuracy.tolist())
+            else:
+                train_acc.append(r_train.accuracy)
 
             r_test = self.test_epoch(dl_test, verbose=verbose, **kw)
             test_loss.append(sum(r_test.losses)/len(r_test.losses))
-            test_acc.append(r_test.accuracy)
 
+            if isinstance(r_test.accuracy, torch.Tensor):
+                test_acc.append(r_test.accuracy.tolist())
+            else:
+                test_acc.append(r_test.accuracy)
             # ========================
 
             # TODO:
@@ -101,7 +108,8 @@ class Trainer(abc.ABC):
             #    the checkpoints argument.
             if best_acc is None or r_test.accuracy > best_acc:
                 # ====== YOUR CODE: ======
-                best_acc = test_acc[-1]
+                #best_acc = test_acc[-1]
+                best_acc = r_test.accuracy
                 idle_imp = 0
                 if checkpoints is not None:
                     torch.save(self.model,checkpoints)
@@ -270,17 +278,26 @@ class ClassifierTrainer(Trainer):
         #  - Update parameters
         #  - Classify and calculate number of correct predictions
         # ====== YOUR CODE: ======
-        y_pred = self.model(X)
+        #y_pred = self.model(X)
 
-        loss = self.loss_fn(y_pred, y)
-        batch_loss = loss.item()
+        #loss = self.loss_fn(y_pred, y)
+        #batch_loss = loss.item()
+
+        #self.optimizer.zero_grad()
+        #loss.backward()
+
+        #self.optimizer.step()
+        #y_class = self.model.classify_scores(y_pred)
+        #num_correct = X.shape[0] - torch.count_nonzero(y_class-y)
 
         self.optimizer.zero_grad()
+        pred_scores = self.model(X)
+        loss = self.loss_fn(pred_scores, y)
         loss.backward()
-
         self.optimizer.step()
-        y_class = self.model.classify_scores(y_pred)
-        num_correct = X.shape[0] - torch.count_nonzero(y_class-y)
+        batch_loss = loss.item()
+        pred = torch.argmax(pred_scores, dim=1)
+        num_correct = torch.sum(pred == y).item()
         # ========================
 
         return BatchResult(batch_loss, num_correct)
@@ -300,11 +317,17 @@ class ClassifierTrainer(Trainer):
             #  - Forward pass
             #  - Calculate number of correct predictions
             # ====== YOUR CODE: ======
-            y_pred = self.model(X)
-            loss = self.loss_fn(y_pred, y)
+            #y_pred = self.model(X)
+            #loss = self.loss_fn(y_pred, y)
+            #batch_loss = loss.item()
+            #y_class = self.model.classify_scores(y_pred)
+            #num_correct = X.shape[0] - torch.sum(torch.absolute(y_class - y))
+
+            pred_scores = self.model(X)
+            loss = self.loss_fn(pred_scores, y)
             batch_loss = loss.item()
-            y_class = self.model.classify_scores(y_pred)
-            num_correct = X.shape[0] - torch.sum(torch.absolute(y_class - y))
+            pred = torch.argmax(pred_scores, dim=1)
+            num_correct = torch.sum(pred == y).item()
             # ========================
 
         return BatchResult(batch_loss, num_correct)
